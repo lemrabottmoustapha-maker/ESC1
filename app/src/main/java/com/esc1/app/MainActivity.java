@@ -1,6 +1,11 @@
 package com.esc1.app;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.net.Uri;
@@ -44,6 +49,44 @@ public class MainActivity extends Activity {
             }
         });
         web.loadUrl("file:///android_asset/index.html");
+        checkUpdate();
+    }
+
+    private static final String BASE = "https://github.com/lemrabottmoustapha-maker/ESC1/releases/download/latest/";
+
+    private void checkUpdate() {
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    HttpURLConnection c = (HttpURLConnection) new URL(BASE + "version.txt").openConnection();
+                    c.setConnectTimeout(6000);
+                    c.setReadTimeout(6000);
+                    c.setInstanceFollowRedirects(true);
+                    BufferedReader r = new BufferedReader(new InputStreamReader(c.getInputStream()));
+                    final int latest = Integer.parseInt(r.readLine().trim());
+                    r.close();
+                    int cur = (int) getPackageManager().getPackageInfo(getPackageName(), 0).getLongVersionCode();
+                    if (latest > cur) {
+                        runOnUiThread(new Runnable() {
+                            public void run() {
+                                new AlertDialog.Builder(MainActivity.this)
+                                    .setTitle("تحديث متوفر")
+                                    .setMessage("يوجد إصدار أحدث من التطبيق. بياناتك لن تُحذف.")
+                                    .setPositiveButton("تحديث", new android.content.DialogInterface.OnClickListener() {
+                                        public void onClick(android.content.DialogInterface d, int w) {
+                                            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(BASE + "ESC1.apk")));
+                                        }
+                                    })
+                                    .setNegativeButton("لاحقاً", null)
+                                    .show();
+                            }
+                        });
+                    }
+                } catch (Exception e) {
+                    // بدون إنترنت أو تعذّر الفحص: تجاهل بصمت
+                }
+            }
+        }).start();
     }
 
     @Override

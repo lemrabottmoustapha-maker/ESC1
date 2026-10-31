@@ -21,9 +21,13 @@ jobs:
         run: gradle assembleDebug --no-daemon
       - name: Rename
         run: cp app/build/outputs/apk/debug/app-debug.apk ESC1.apk
+      - name: Version file
+        run: echo ${{ github.run_number }} > version.txt
       - name: Publish release "latest"
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
           name: ESC1 latest
-          files: ESC1.apk
+          files: |
+            ESC1.apk
+            version.txt
