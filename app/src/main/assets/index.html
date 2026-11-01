@@ -117,6 +117,7 @@ dialog#lb::backdrop{background:rgba(0,0,0,.75)}
 #pfd{margin-inline-start:auto}
 .rv{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
 .rv .btn{flex:none}
+.rvb{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
 tr.gh td{background:color-mix(in srgb,var(--brand) 16%,var(--panel));color:var(--brand);font-weight:700;padding:8px 12px;border-bottom:1px solid var(--line)}
 tr.gh b{display:inline-block;margin-inline-start:10px;min-width:1.6em;text-align:center;padding:0 8px;border-radius:999px;background:var(--brand);color:var(--brand-ink);font-size:.85rem;font-weight:500}
 .specbox{display:grid;grid-template-columns:1fr 1fr;margin-bottom:16px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:color-mix(in srgb,var(--panel) 88%,transparent)}
@@ -348,17 +349,22 @@ $('#pfx').onclick=$('#pfc').onclick=()=>$('#pview').close();
 const missingSeed=()=>SEED.filter(x=>!data.some(p=>String(p.milId)===String(x.milId))&&!trash.some(p=>String(p.milId)===String(x.milId)));
 function updRcv(){const n=trash.length+missingSeed().length;$('#rcvb').textContent=n?'Supprimés ('+n+')':'Supprimés'}
 function fillRcv(){
-  const row=(p,attr,note)=>`<div class="rv"><div class="who">${p.photo?`<img class="av" src="${p.photo}" alt="" style="cursor:default">`:`<span class="av">${esc((p.name||'?').charAt(0))}</span>`}<div><div class="name">${esc([p.name,p.surname].filter(Boolean).join(' '))}</div><div class="small">${esc(p.rank||'')}${p.milId?', n° '+esc(p.milId):''}${note?' · '+note:''}</div></div></div><button type="button" class="btn pri" ${attr}>Récupérer</button></div>`;
+  const row=(p,attr,note)=>`<div class="rv"><div class="who">${p.photo?`<img class="av" src="${p.photo}" alt="" style="cursor:default">`:`<span class="av">${esc((p.name||'?').charAt(0))}</span>`}<div><div class="name">${esc([p.name,p.surname].filter(Boolean).join(' '))}</div><div class="small">${esc(p.rank||'')}${p.milId?', n° '+esc(p.milId):''}${note?' · '+note:''}</div></div></div><div class="rvb"><button type="button" class="btn pri" ${attr}>Récupérer</button>${attr.startsWith('data-rt')?attr.replace('data-rt','data-rd').replace(/^/,'<button type="button" class="btn dng" ')+'>Supprimer définitivement</button>':''}</div></div>`;
   const ms=missingSeed();
   let h='';
   if(trash.length)h+='<h3>Supprimés de l’application</h3>'+trash.map(p=>row(p,'data-rt="'+esc(p.id)+'"','Supprimé le '+fd((p.deletedAt||'').slice(0,10)))).join('');
   if(ms.length)h+='<h3>Provenant des données d’origine importées</h3>'+ms.map(p=>row(p,'data-rs="'+esc(String(p.milId))+'"','données d’origine')).join('');
-  $('#rcvh').textContent=(trash.length||ms.length)?'Cliquez sur « Récupérer » pour remettre le membre dans la liste. La récupération depuis les données d’origine rétablit la version importée, sans vos modifications.':'';
+  $('#rcvh').textContent=(trash.length||ms.length)?'Cliquez sur « Récupérer » pour remettre le membre dans la liste, ou sur « Supprimer définitivement » pour l’effacer pour toujours. La récupération depuis les données d’origine rétablit la version importée, sans vos modifications.':'';
   $('#rcvl').innerHTML=h||'<div class="empty">Aucun membre supprimé.</div>';
 }
 $('#rcvb').onclick=()=>{fillRcv();$('#rcv').showModal()};
 $('#rcvx').onclick=()=>$('#rcv').close();
-$('#rcvl').onclick=e=>{
+$('#rcvl').onclick=async e=>{
+  const d=e.target.closest('[data-rd]');
+  if(d){const i=trash.findIndex(x=>x.id===d.dataset.rd);if(i<0)return;const p=trash[i];
+    const nm=[p.rank,p.name,p.surname].filter(Boolean).join(' ')||'(Sans nom)';
+    if(!await ask('Supprimer définitivement « '+nm+' » ? Cette action est irréversible : il ne pourra plus être récupéré.'))return;
+    const j=trash.findIndex(x=>x.id===d.dataset.rd);if(j>=0)trash.splice(j,1);saveTrash();fillRcv();updRcv();return}
   const b=e.target.closest('[data-rt],[data-rs]');if(!b)return;
   if(b.dataset.rt){const i=trash.findIndex(x=>x.id===b.dataset.rt);if(i<0)return;const r=trash.splice(i,1)[0];delete r.deletedAt;data.push(r);saveTrash()}
   else{const r=SEED.find(x=>String(x.milId)===b.dataset.rs);if(!r)return;data.push(JSON.parse(JSON.stringify(r)))}
