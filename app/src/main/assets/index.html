@@ -179,6 +179,7 @@ tr.gh b{display:inline-block;margin-inline-start:10px;min-width:1.6em;text-align
   <p class="small" id="note"></p>
 </div>
 
+<dialog id="cf" aria-label="Confirmation"><form method="dialog" style="padding:18px;display:grid;gap:14px"><p id="cfm" style="margin:0;line-height:1.6"></p><div class="foot"><button type="button" class="btn pri" id="cfo">OK</button><button type="button" class="btn" id="cfc">Annuler</button></div></form></dialog>
 <dialog id="pview" aria-label="Fiche du membre">
   <div class="pbody">
     <div class="dh"><button type="button" class="x" id="pfx" aria-label="Fermer la fenêtre" title="Fermer">✕</button><h2 id="pft"></h2></div>
@@ -294,7 +295,7 @@ $('#pf').onchange=e=>{
   const r=new FileReader();
   r.onload=()=>{const im=new Image();
     im.onload=()=>{const k=Math.min(1,360/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);photo=c.toDataURL('image/jpeg',.82);showPhoto()};
-    im.onerror=()=>alert('Impossible de lire l’image. Choisissez un fichier image valide (JPG ou PNG).');
+    im.onerror=()=>say('Impossible de lire l’image. Choisissez un fichier image valide (JPG ou PNG).');
     im.src=r.result};
   r.readAsDataURL(f);
 };
@@ -319,6 +320,12 @@ $('#save').onclick=()=>{
 $('#stats').onclick=e=>{const b=e.target.closest('[data-f]');if(b){filter=b.dataset.f;render()}};
 $('#q').oninput=render;
 const fd=v=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v||'');return m?m[3]+'/'+m[2]+'/'+m[1]:(v||'')};
+/* boîtes de dialogue intégrées (confirm/alert natifs peuvent être bloqués) */
+function ask(msg,info){return new Promise(res=>{const d=document.getElementById('cf');document.getElementById('cfm').textContent=msg;
+  const c=document.getElementById('cfc'),o=document.getElementById('cfo');c.hidden=!!info;
+  const done=v=>{o.onclick=c.onclick=null;d.onclose=null;if(d.open)d.close();res(v)};
+  o.onclick=()=>done(true);c.onclick=()=>done(false);d.onclose=()=>done(false);d.showModal()})}
+const say=m=>ask(m,true);
 let viewId=null;
 function viewP(id){
   const p=data.find(x=>x.id===id);if(!p)return;viewId=id;
@@ -357,10 +364,10 @@ $('#rcvl').onclick=e=>{
   else{const r=SEED.find(x=>String(x.milId)===b.dataset.rs);if(!r)return;data.push(JSON.parse(JSON.stringify(r)))}
   persist();render();fillRcv();
 };
-$('#pfd').onclick=()=>{
+$('#pfd').onclick=async()=>{
   const p=data.find(x=>x.id===viewId);if(!p)return;
   const nm=[p.rank,p.name,p.surname].filter(Boolean).join(' ')||'(Sans nom)';
-  if(!confirm('Supprimer « '+nm+' » de la liste ? Il sera déplacé vers « Supprimés » et vous pourrez le récupérer.'))return;
+  if(!await ask('Supprimer « '+nm+' » de la liste ? Il sera déplacé vers « Supprimés » et vous pourrez le récupérer.'))return;
   trash.unshift({...p,deletedAt:new Date().toISOString()});trash=trash.slice(0,100);saveTrash();
   data=data.filter(x=>x.id!==viewId);persist();render();$('#pview').close();viewId=null;
 };
@@ -491,7 +498,7 @@ async function savePDF(name,blob){
 }
 async function runPDF(btn,mk,name){
   const t=btn.textContent;btn.disabled=true;btn.textContent='Préparation…';
-  try{await savePDF(name,await docToPDF(await mk()))}catch(e){alert('Impossible de créer le fichier PDF')}
+  try{await savePDF(name,await docToPDF(await mk()))}catch(e){say('Impossible de créer le fichier PDF')}
   btn.disabled=false;btn.textContent=t;
 }
 const today=()=>new Date().toISOString().slice(0,10);
@@ -504,12 +511,12 @@ $('#rst').onclick=()=>$('#rf').click();
 $('#rf').onchange=e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
   const r=new FileReader();
-  r.onload=()=>{try{
+  r.onload=async()=>{try{
     const d=JSON.parse(r.result);
     if(!Array.isArray(d)||d.some(x=>!x||typeof x!=='object'))throw 0;
-    if(!confirm('La liste actuelle ('+data.length+' membres) sera remplacée par la sauvegarde ('+d.length+' membres). Continuer ?'))return;
+    if(!await ask('La liste actuelle ('+data.length+' membres) sera remplacée par la sauvegarde ('+d.length+' membres). Continuer ?'))return;
     data=d.map(x=>({...x,st:x.st==='sick'?'absent':x.st,id:x.id||Date.now().toString(36)+Math.random().toString(36).slice(2,6)}));persist();render();
-  }catch(_){alert('Fichier invalide. Choisissez un fichier de sauvegarde exporté auparavant depuis cette application.')}};
+  }catch(_){say('Fichier invalide. Choisissez un fichier de sauvegarde exporté auparavant depuis cette application.')}};
   r.readAsText(f);
 };
 $('#today').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
@@ -601,8 +608,8 @@ L('p_cur').addEventListener('input',()=>{L('le').textContent=''});
 L('lcancel').onclick=unlockUI;
 L('lk').onclick=()=>{if(rec)show('unlock')};
 L('chg').onclick=()=>{if(rec)show('change')};
-L('lforgot').onclick=()=>{
-  if(confirm('Le code ne peut pas être récupéré. Continuer supprimera le code et toutes les données enregistrées sur cet appareil ; vous pourrez ensuite les restaurer depuis une sauvegarde. Voulez-vous continuer ?')&&confirm('Dernière confirmation : supprimer le code et toutes les données ?')){
+L('lforgot').onclick=async()=>{
+  if(await ask('Le code ne peut pas être récupéré. Continuer supprimera le code et toutes les données enregistrées sur cet appareil ; vous pourrez ensuite les restaurer depuis une sauvegarde. Voulez-vous continuer ?')&&await ask('Dernière confirmation : supprimer le code et toutes les données ?')){
     try{localStorage.removeItem(KEY);localStorage.removeItem(PK)}catch(e){}
     data=[];rec=null;render();show('setup');
   }
