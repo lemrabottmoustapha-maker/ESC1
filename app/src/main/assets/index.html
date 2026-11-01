@@ -73,6 +73,7 @@ label input,label select,label textarea{padding:8px 10px;border:1px solid var(--
 #lf h2,#lf label,#lf .small{color:var(--ink)}
 #lf .btn{background:var(--panel)}
 #lf .btn.pri{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);text-shadow:none;font-weight:700;padding:12px}
+.inv{border-color:#c0392b!important;box-shadow:0 0 0 2px rgba(192,57,43,.25)}
 .err{color:var(--s-sick);margin:0;min-height:1.4em;font-size:.9rem}
 .dh{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:flex-start;gap:12px;background:var(--panel);margin:-18px -18px 0;padding:12px 18px;border-bottom:1px solid var(--line)}
 .x{width:38px;height:38px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:1.1rem;line-height:1;cursor:pointer;color:var(--ink)}
@@ -213,6 +214,7 @@ tr.gh b{display:inline-block;margin-inline-start:10px;min-width:1.6em;text-align
       </div>
     </div>
     <div id="fg"></div>
+    <p class="err" id="ferr" role="alert" style="position:sticky;bottom:0;margin:0;padding:8px 16px;background:var(--panel);border-top:1px solid var(--line)" hidden></p>
     <div class="foot">
       <button type="button" class="btn pri" id="save">Enregistrer</button>
       <button type="button" class="btn" id="cancel">Annuler</button>
@@ -301,7 +303,7 @@ function openForm(id){
   editId=id;const p=data.find(x=>x.id===id)||{};
   $('#ft').textContent=id?'Modifier le membre':'Ajouter un membre';
   ALL.forEach(f=>{const e=$f(f.id);e.value=p[f.id]??(f.sel?e.options[0].value:'')});
-  photo=p.photo||'';showPhoto();calc();$('#dlg').showModal();
+  photo=p.photo||'';showPhoto();calc();$('#ferr').hidden=true;$('#ferr').textContent='';document.querySelectorAll('.inv').forEach(e=>e.classList.remove('inv'));$('#dlg').showModal();
 }
 const lb=document.getElementById('lb');
 function openLb(src,cap){document.getElementById('lbimg').src=src;document.getElementById('lbcap').textContent=(cap||'').trim();lb.showModal()}
@@ -311,7 +313,14 @@ $('#add').onclick=()=>openForm(null);
 $('#cancel').onclick=()=>$('#dlg').close();
 $('#xcl').onclick=()=>$('#dlg').close();
 $('#save').onclick=()=>{
-  if(!$('#f').reportValidity())return;
+  const num=id=>+($f(id).value||0),miss=[];
+  ALL.forEach(f=>{const e=$f(f.id);e.classList.remove('inv');if(e.disabled||e.readOnly)return;
+    if(f.id==='penReason'||f.id==='penDate'){if(!num('penCount'))return}
+    if(f.id==='leaveDates'){if(!num('leaveCount'))return}
+    if(f.id==='ret'&&$f('st').value==='present')return;
+    if(!String(e.value).trim()){e.classList.add('inv');miss.push(f)}});
+  $('#ferr').hidden=!miss.length;$('#ferr').textContent=miss.length?'Veuillez remplir tous les champs ('+miss.length+' manquant'+(miss.length>1?'s':'')+') : '+miss.slice(0,3).map(f=>f.l).join(', ')+(miss.length>3?'…':''):'';
+  if(miss.length){const e=$f(miss[0].id);e.scrollIntoView({block:'center'});e.focus();return}
   const rec={photo};ALL.forEach(f=>{const e=$f(f.id);rec[f.id]=e.disabled?'':e.value.trim()});
   if(editId)Object.assign(data.find(x=>x.id===editId),rec);else data.push({id:Date.now().toString(36),...rec});
   persist();render();$('#dlg').close();
