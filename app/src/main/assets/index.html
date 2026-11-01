@@ -14,11 +14,11 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#eef2f5;--panel:#fff;--ink:#14232e;--mute:#5c6e7b;--line:#d3dce3;--brand:#0b4f6c;--brand-ink:#fff;
---s-present:#1f8a5b;--s-mission:#0b6fb8;--s-leave:#b7791f;--s-sick:#c0392b;--s-course:#6b4fbb;--s-absent:#6b7280}
+--s-present:#1f8a5b;--s-mission:#0b6fb8;--s-leave:#b7791f;--s-sick:#c0392b;--s-course:#6b4fbb;--s-absent:#6b7280;--s-bare:#0e8f9b;--s-medrest:#c0392b;--s-flee:#8e1b4a}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e171d;--panel:#16232c;--ink:#e6eef3;--mute:#93a5b2;--line:#263845;--brand:#4fb3d9;--brand-ink:#08222d;
---s-present:#43c08a;--s-mission:#5aaee8;--s-leave:#e0a948;--s-sick:#ee7a6d;--s-course:#a58cf0;--s-absent:#98a2ae}}
+--s-present:#43c08a;--s-mission:#5aaee8;--s-leave:#e0a948;--s-sick:#ee7a6d;--s-course:#a58cf0;--s-absent:#98a2ae;--s-bare:#4cc4cf;--s-medrest:#ee7a6d;--s-flee:#e0679a}}
 :root[data-theme="dark"]{--bg:#0e171d;--panel:#16232c;--ink:#e6eef3;--mute:#93a5b2;--line:#263845;--brand:#4fb3d9;--brand-ink:#08222d;
---s-present:#43c08a;--s-mission:#5aaee8;--s-leave:#e0a948;--s-sick:#ee7a6d;--s-course:#a58cf0;--s-absent:#98a2ae}
+--s-present:#43c08a;--s-mission:#5aaee8;--s-leave:#e0a948;--s-sick:#ee7a6d;--s-course:#a58cf0;--s-absent:#98a2ae;--s-bare:#4cc4cf;--s-medrest:#ee7a6d;--s-flee:#e0679a}
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *,*::before,*::after{box-sizing:inherit}
@@ -147,7 +147,7 @@ tr.gh b{display:inline-block;margin-inline-start:10px;min-width:1.6em;text-align
 <div class="wrap">
   <header>
     <div class="hl"><div class="embh" aria-hidden="true"></div><div>
-      <h1>خلية أنظمة المعلومات والاتصال</h1>
+      <h1>ESC1</h1>
       <p class="sub" id="today"></p>
     </div></div>
     <div class="tools">
@@ -170,7 +170,7 @@ tr.gh b{display:inline-block;margin-inline-start:10px;min-width:1.6em;text-align
 
   <div class="tablebox">
     <table>
-      <thead><tr><th>الفرد</th><th>الحالة</th><th>الوحدة</th></tr></thead>
+      <thead><tr><th>الفرد</th><th>الحالة</th><th>المجموعة</th></tr></thead>
       <tbody id="rows"></tbody>
     </table>
     <div class="empty" id="empty" hidden>لا يوجد أفراد مطابقون. اضغط «إضافة فرد» لتسجيل أول فرد.</div>
@@ -226,7 +226,10 @@ const STATUS=[
  {k:'mission',t:'مهمة',c:'var(--s-mission)'},
  {k:'leave',t:'إجازة',c:'var(--s-leave)'},
  {k:'course',t:'تدريب',c:'var(--s-course)'},
- {k:'absent',t:'غياب',c:'var(--s-absent)'}];
+ {k:'absent',t:'غياب',c:'var(--s-absent)'},
+ {k:'bare',t:'عرية',c:'var(--s-bare)'},
+ {k:'medrest',t:'راحة طبية',c:'var(--s-medrest)'},
+ {k:'flee',t:'هروب',c:'var(--s-flee)'}];
 const SPECS=['مراسل','مصلح','إشارة','معلوماتية'];
 const KEY='esc1-personnel-v1';
 const $=s=>document.querySelector(s);
@@ -234,7 +237,7 @@ let data=[],filter='all',editId=null,memOnly=false;
 
 function load(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r)}catch(e){memOnly=true}return null}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){memOnly=true}note()}
-function note(){$('#note').textContent=memOnly?'تعذّر الحفظ في هذا المتصفح؛ البيانات مؤقتة حتى إغلاق الصفحة.':'تُحفظ البيانات تلقائيًا في هذا المتصفح فقط. استخدم «تصدير CSV» للاحتفاظ بنسخة.'}
+function note(){$('#note').textContent=memOnly?'تعذّر الحفظ في هذا المتصفح؛ البيانات مؤقتة حتى إغلاق الصفحة.':'تُحفظ البيانات تلقائيًا في هذا المتصفح فقط. استخدم «نسخ احتياطي» للاحتفاظ بنسخة.'}
 const st=k=>STATUS.find(s=>s.k===k)||STATUS[0];
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
@@ -265,7 +268,7 @@ const SEC=[
 ['البطاقات والاتصال',[{id:'cardMil',l:'رقم البطاقة العسكرية'},{id:'phone',l:'رقم الهاتف',t:'tel'},{id:'addr',l:'العنوان',w:1}]],
 ['المسار المهني',[{id:'edate',l:'تاريخ الإكتتاب',t:'date'},]],
 ['العقوبات والإجازات',[{id:'penCount',l:'عدد العقوبات',t:'number'},{id:'penReason',l:'سبب العقوبات',ta:1,w:1},{id:'penDate',l:'تاريخ التوقيف (التواريخ إن تعددت)',ta:1,w:1},{id:'leaveCount',l:'عدد الإجازات',t:'number'},{id:'leaveDates',l:'تواريخ الإجازات',ta:1,w:1}]],
-['الحالة الحالية',[{id:'st',l:'الحالة',sel:STATUS.map(s=>[s.k,s.t])},{id:'ret',l:'العودة المتوقعة',t:'date'},{id:'note',l:'الوحدة',ta:1,w:1}]]
+['الحالة الحالية',[{id:'st',l:'الحالة',sel:STATUS.map(s=>[s.k,s.t])},{id:'ret',l:'العودة المتوقعة',t:'date'},{id:'note',l:'المجموعة',ta:1,w:1}]]
 ];
 const ALL=SEC.flatMap(s=>s[1]);
 const inp=f=>f.t==='number'?`<input id="f_${f.id}" type="number" min="0" step="1">`:f.sel?`<select id="f_${f.id}">${f.sel.map(o=>{const[v,t]=Array.isArray(o)?o:[o,o];return `<option value="${v}">${t}</option>`}).join('')}</select>`:f.ta?`<textarea id="f_${f.id}" rows="2"></textarea>`:`<input id="f_${f.id}" type="${f.t||'text'}" ${f.r?'required':''} ${f.ro?'readonly':''}>`;
@@ -386,7 +389,7 @@ function loadImg(src){return new Promise(r=>{const i=new Image();i.onload=()=>r(
 function drawCover(cx,im,x,y,w,h){const s=Math.max(w/im.width,h/im.height),dw=im.width*s,dh=im.height*s;cx.save();cx.beginPath();cx.rect(x,y,w,h);cx.clip();cx.drawImage(im,x+(w-dw)/2,y+(h-dh)/2,dw,dh);cx.restore()}
 function pdfHeader(D,sub){
   const cx=D.cx;cx.fillStyle=PC.brand;cx.fillRect(0,0,PW,150);
-  D.txt('خلية أنظمة المعلومات والاتصال',PW-PM,72,D.fnt('bold',44),'#fff');
+  D.txt('ESC1',PW-PM,72,D.fnt('bold',44),'#fff');
   D.txt(sub,PW-PM,120,D.fnt('normal',28),'#d6e6ee');
   D.txt('تاريخ التصدير: '+fd(new Date().toISOString().slice(0,10)),PM,120,D.fnt('normal',24),'#d6e6ee','left');
   D.y=190;
@@ -445,13 +448,13 @@ function rosterDoc(){
   const total=data.length,sc=STATUS.map(s=>s.t+': '+data.filter(p=>p.st===s.k).length).join('   |   ');
   D.txt('العدد الكلي: '+total,PW-PM,D.y+20,D.fnt('bold',27),PC.ink);
   D.txt(sc,PW-PM,D.y+62,D.fnt('normal',25),PC.mute);D.y+=100;
-  const cols=[['#',50],['الفرد',430],['الرقم العسكري',170],['الحالة',110],['الهاتف',150],['الوحدة',190]];
+  const cols=[['#',50],['الفرد',430],['الرقم العسكري',170],['الحالة',110],['الهاتف',150],['المجموعة',190]];
   const head=()=>{cx=D.cx;cx.fillStyle=PC.brand;cx.fillRect(PM,D.y,PW-2*PM,54);let x=PW-PM;cols.forEach(([t,w])=>{D.txt(t,x-12,D.y+37,D.fnt('bold',25),'#fff');x-=w});D.y+=54};
   head();
   data.forEach((p,n)=>{
     if(D.y+58>PH-PM-50){D.page();head()}
     cx=D.cx;
-    const cells=[n+1,[p.rank,p.name,p.surname].filter(Boolean).join(' '),p.milId||'',st(p.st).t,p.phone||'',String(p.note||'').split('\n')[0].replace(/^الوحدة:\s*/,'')];
+    const cells=[n+1,[p.rank,p.name,p.surname].filter(Boolean).join(' '),p.milId||'',st(p.st).t,p.phone||'',String(p.note||'').split('\n')[0].replace(/^(الوحدة|المجموعة):\s*/,'')];
     let x=PW-PM;cols.forEach(([t,w],i)=>{D.txt(D.fit(cells[i],w-20,D.fnt('normal',25)),x-12,D.y+37,D.fnt('normal',25),PC.ink);x-=w});
     cx.strokeStyle=PC.line;cx.lineWidth=1.5;cx.beginPath();cx.moveTo(PM,D.y+58);cx.lineTo(PW-PM,D.y+58);cx.stroke();D.y+=58;
   });
