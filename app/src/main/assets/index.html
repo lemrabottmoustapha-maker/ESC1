@@ -14,11 +14,11 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#eef2f5;--panel:#fff;--ink:#14232e;--mute:#5c6e7b;--line:#d3dce3;--brand:#0b4f6c;--brand-ink:#fff;
---s-present:#1f8a5b;--s-mission:#0b6fb8;--s-leave:#b7791f;--s-sick:#c0392b;--s-course:#6b4fbb;--s-absent:#6b7280;--s-bare:#0e8f9b;--s-medrest:#c0392b;--s-flee:#8e1b4a}
+--s-present:#1f8a5b;--s-mission:#0b6fb8;--s-leave:#b7791f;--s-sick:#c0392b;--s-course:#6b4fbb;--s-absent:#6b7280;--s-bare:#0e8f9b;--s-medrest:#c0392b;--s-flee:#8e1b4a;--s-unavail:#b45309;--s-detach:#4f46e5;--s-pm:#be185d}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e171d;--panel:#16232c;--ink:#e6eef3;--mute:#93a5b2;--line:#263845;--brand:#4fb3d9;--brand-ink:#08222d;
---s-present:#43c08a;--s-mission:#5aaee8;--s-leave:#e0a948;--s-sick:#ee7a6d;--s-course:#a58cf0;--s-absent:#98a2ae;--s-bare:#4cc4cf;--s-medrest:#ee7a6d;--s-flee:#e0679a}}
+--s-present:#43c08a;--s-mission:#5aaee8;--s-leave:#e0a948;--s-sick:#ee7a6d;--s-course:#a58cf0;--s-absent:#98a2ae;--s-bare:#4cc4cf;--s-medrest:#ee7a6d;--s-flee:#e0679a;--s-unavail:#f0a35a;--s-detach:#8b87f5;--s-pm:#f06aa6}}
 :root[data-theme="dark"]{--bg:#0e171d;--panel:#16232c;--ink:#e6eef3;--mute:#93a5b2;--line:#263845;--brand:#4fb3d9;--brand-ink:#08222d;
---s-present:#43c08a;--s-mission:#5aaee8;--s-leave:#e0a948;--s-sick:#ee7a6d;--s-course:#a58cf0;--s-absent:#98a2ae;--s-bare:#4cc4cf;--s-medrest:#ee7a6d;--s-flee:#e0679a}
+--s-present:#43c08a;--s-mission:#5aaee8;--s-leave:#e0a948;--s-sick:#ee7a6d;--s-course:#a58cf0;--s-absent:#98a2ae;--s-bare:#4cc4cf;--s-medrest:#ee7a6d;--s-flee:#e0679a;--s-unavail:#f0a35a;--s-detach:#8b87f5;--s-pm:#f06aa6}
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *,*::before,*::after{box-sizing:inherit}
@@ -225,14 +225,18 @@ tr.gh b{display:inline-block;margin-inline-start:10px;min-width:1.6em;text-align
 
 <script>
 const STATUS=[
- {k:'present',t:'Présent',c:'var(--s-present)'},
+ {k:'present',t:'Sur le rang',c:'var(--s-present)'},
+ {k:'unavail',t:'Indisponible',c:'var(--s-unavail)'},
+ {k:'pld',t:'PLD',c:'var(--s-leave)'},
+ {k:'pcd',t:'PCD',c:'var(--s-bare)'},
+ {k:'detach',t:'Détaché',c:'var(--s-detach)'},
  {k:'mission',t:'Mission',c:'var(--s-mission)'},
- {k:'leave',t:'Congé',c:'var(--s-leave)'},
  {k:'course',t:'Formation',c:'var(--s-course)'},
- {k:'absent',t:'Absence',c:'var(--s-absent)'},
- {k:'bare',t:'Permission',c:'var(--s-bare)'},
  {k:'medrest',t:'Repos médical',c:'var(--s-medrest)'},
+ {k:'pm',t:'PM',c:'var(--s-pm)'},
+ {k:'absent',t:'Absent',c:'var(--s-absent)'},
  {k:'flee',t:'Désertion',c:'var(--s-flee)'}];
+const MIGST={sick:'medrest',leave:'pld',bare:'pcd'};
 const SPECS=['Estafette','Réparateur','Transmissions','Informatique'];
 const KEY='esc1-personnel-v1';
 const $=s=>document.querySelector(s);
@@ -521,7 +525,7 @@ $('#rf').onchange=e=>{
     const d=JSON.parse(r.result);
     if(!Array.isArray(d)||d.some(x=>!x||typeof x!=='object'))throw 0;
     if(!await ask('La liste actuelle ('+data.length+' membres) sera remplacée par la sauvegarde ('+d.length+' membres). Continuer ?'))return;
-    data=d.map(x=>({...x,st:x.st==='sick'?'absent':x.st,id:x.id||Date.now().toString(36)+Math.random().toString(36).slice(2,6)}));persist();render();
+    data=d.map(x=>({...x,st:MIGST[x.st]||x.st,id:x.id||Date.now().toString(36)+Math.random().toString(36).slice(2,6)}));persist();render();
   }catch(_){say('Fichier invalide. Choisissez un fichier de sauvegarde exporté auparavant depuis cette application.')}};
   r.readAsText(f);
 };
@@ -544,7 +548,7 @@ try{
   init=init.map(p=>{const k=String(p.milId);if(PH[k]&&!pd.includes(k)){newly.push(k);return p.photo?p:{...p,photo:PH[k]}}return p});
   if(newly.length){seeded=true;localStorage.setItem('esc1-photo-ids',JSON.stringify(pd.concat(newly)))}
 }catch(e){}
-data=init.map(p=>p.st==='sick'?{...p,st:'absent'}:p);
+data=init.map(p=>MIGST[p.st]?{...p,st:MIGST[p.st]}:p);
 if(seeded){persist();try{localStorage.setItem('esc1-seeded-ids',JSON.stringify(allIds))}catch(e){}}note();render();
 const PK='esc1-pin-v1';
 let rec=null,mode='unlock',fails=0,until=0,away=0;
