@@ -163,15 +163,14 @@ tr.gh b{display:inline-block;margin-inline-start:10px;min-width:1.6em;text-align
   </header>
 
   <section class="stats" id="stats" aria-label="ملخص الحالات"></section>
-  <div class="specbox" id="spbox" role="group" aria-label="تصفية حسب الاختصاص"></div>
-
+  
   <div class="bar">
-    <input id="q" type="search" placeholder="ابحث بالاسم أو الرقم العسكري أو الرتبة أو الاختصاص" aria-label="بحث">
+    <input id="q" type="search" placeholder="ابحث بالاسم أو الرقم العسكري أو الرتبة" aria-label="بحث">
   </div>
 
   <div class="tablebox">
     <table>
-      <thead><tr><th>الفرد</th><th>الاختصاص</th><th>الحالة</th><th>الوحدة</th></tr></thead>
+      <thead><tr><th>الفرد</th><th>الحالة</th><th>الوحدة</th></tr></thead>
       <tbody id="rows"></tbody>
     </table>
     <div class="empty" id="empty" hidden>لا يوجد أفراد مطابقون. اضغط «إضافة فرد» لتسجيل أول فرد.</div>
@@ -246,35 +245,25 @@ function renderStats(){
    STATUS.map(s=>`<button class="stat" style="--c:${s.c}" data-f="${s.k}" aria-pressed="${filter===s.k}"><b>${cnt(s.k)}</b><span>${s.t}</span></button>`).join('');
 }
 const nd=v=>String(v??'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-const SPI={'إشارة':'<svg class="spl" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 14v13M12 28h8M16 14l-4 14M16 14l4 14"/><circle cx="16" cy="11" r="2" fill="currentColor"/><path d="M10.5 6.5a7.8 7.8 0 0 0 0 9M21.5 6.5a7.8 7.8 0 0 1 0 9M7 3.5a12.5 12.5 0 0 0 0 15M25 3.5a12.5 12.5 0 0 1 0 15"/></svg>','معلوماتية':'<svg class="spl" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="14" height="14" rx="2"/><rect x="13" y="13" width="6" height="6" fill="currentColor"/><path d="M13 9V4M19 9V4M13 28v-5M19 28v-5M9 13H4M9 19H4M28 13h-5M28 19h-5"/></svg>'};
-function renderSpec(){
-  const items=[['إشارة','أفراد الإشارة'],['معلوماتية','أفراد المعلوماتية']];
-  $('#spbox').innerHTML=items.map(([k,t])=>`<button type="button" class="spb" data-sp="${k}" aria-pressed="${specF===k}">${SPI[k]}<span>${t}</span><b>${data.filter(p=>p.spec===k).length}</b></button>`).join('');
-}
 function render(){
-  renderStats();renderSpec();
+  renderStats();
   const q=nd($('#q').value.trim());
-  const list=data.filter(p=>(filter==='all'||p.st===filter)&&(!specF||p.spec===specF)&&(!q||[p.name,p.surname,p.rank,p.spec,p.note,p.milId,p.phone,p.tribe].some(v=>nd(v).includes(q))));
+  const list=data.filter(p=>(filter==='all'||p.st===filter)&&(!q||[p.name,p.surname,p.rank,p.note,p.milId,p.phone].some(v=>nd(v).includes(q))));
   $('#empty').hidden=list.length>0;
   const rowH=p=>{const s=st(p.st);return `<tr>
    <td><div class="who">${p.photo?`<img class="av" src="${p.photo}" alt="" data-n="${esc(p.rank+' '+p.name+' '+p.surname)}" title="اضغط لتكبير الصورة">`:`<span class="av">${esc((p.name||"؟").charAt(0))}</span>`}<div><div class="name"><button type="button" class="nm" data-v="${p.id}" title="اضغط لعرض بيانات الفرد">${esc(p.name)} ${esc(p.surname)}</button></div><div class="small">${esc(p.rank)}${p.milId?"، رقم "+esc(p.milId):""}</div></div></div></td>
-   <td>${esc(p.spec)}</td>
    <td><select class="quick" data-id="${p.id}" aria-label="تغيير الحالة" style="--c:${s.c}">${STATUS.map(o=>`<option value="${o.k}" ${o.k===p.st?'selected':''}>${o.t}</option>`).join('')}</select></td>
    <td>${esc(p.note)||'<span class="small">—</span>'}</td>
    </tr>`};
-  const order=['إشارة','معلوماتية',...SPECS.filter(x=>x!=='إشارة'&&x!=='معلوماتية')];
-  const groups=order.map(g=>[g,list.filter(p=>p.spec===g)]);
-  const rest=list.filter(p=>!order.includes(p.spec));
-  if(rest.length)groups.push(['بدون اختصاص',rest]);
-  $('#rows').innerHTML=groups.filter(([,a])=>a.length).map(([g,a])=>`<tr class="gh"><td colspan="4"><span>${esc(g)}</span><b>${a.length}</b></td></tr>`+a.map(rowH).join('')).join('');
+  $('#rows').innerHTML=list.map(rowH).join('');
   updRcv();
 }
 const MAR=['أعزب','متزوج'];
 const SEC=[
-['الهوية',[{id:'name',l:'الاسم',r:1},{id:'surname',l:'اللقب',r:1},{id:'rank',l:'الرتبة',r:1},{id:'milId',l:'الرقم العسكري'},{id:'spec',l:'التخصص',sel:SPECS},{id:'cat',l:'الصنف'},{id:'bdate',l:'تاريخ الميلاد',t:'date'},{id:'bplace',l:'مكان الميلاد'},{id:'tribe',l:'القبيلة'},{id:'age',l:'العمر',ro:1}]],
+['الهوية',[{id:'name',l:'الاسم',r:1},{id:'surname',l:'اللقب',r:1},{id:'rank',l:'الرتبة',r:1},{id:'milId',l:'الرقم العسكري'},{id:'bdate',l:'تاريخ الميلاد',t:'date'},{id:'bplace',l:'مكان الميلاد'},]],
 ['الحالة العائلية',[{id:'marital',l:'الحالة الإجتماعية',sel:MAR},{id:'mdate',l:'تاريخ الزواج',t:'date'},{id:'boys',l:'عدد الذكور',t:'number'},{id:'girls',l:'عدد الإناث',t:'number'},{id:'kids',l:'العدد الكلي للأولاد',ro:1}]],
-['البطاقات والاتصال',[{id:'cardMil',l:'رقم البطاقة العسكرية'},{id:'cardNat',l:'رقم بطاقة التعريف الوطني'},{id:'phone',l:'رقم الهاتف',t:'tel'},{id:'addr',l:'العنوان',w:1}]],
-['المسار المهني',[{id:'tableNo',l:'الرقم في طاولة التقدم'},{id:'edate',l:'تاريخ الإكتتاب',t:'date'},{id:'pdate',l:'تاريخ الترقية إلى الرتبة الحالية',t:'date'},{id:'years',l:'الفترة في الرتبة الحالية',ro:1},{id:'courses',l:'الدورات التدريبية',ta:1,w:1},{id:'t1',l:'آخر تحويل'},{id:'t2',l:'التحويل الذي قبله'},{id:'t3',l:'التحويل الثالث'}]],
+['البطاقات والاتصال',[{id:'cardMil',l:'رقم البطاقة العسكرية'},{id:'phone',l:'رقم الهاتف',t:'tel'},{id:'addr',l:'العنوان',w:1}]],
+['المسار المهني',[{id:'edate',l:'تاريخ الإكتتاب',t:'date'},]],
 ['العقوبات والإجازات',[{id:'penCount',l:'عدد العقوبات',t:'number'},{id:'penReason',l:'سبب العقوبات',ta:1,w:1},{id:'penDate',l:'تاريخ التوقيف (التواريخ إن تعددت)',ta:1,w:1},{id:'leaveCount',l:'عدد الإجازات',t:'number'},{id:'leaveDates',l:'تواريخ الإجازات',ta:1,w:1}]],
 ['الحالة الحالية',[{id:'st',l:'الحالة',sel:STATUS.map(s=>[s.k,s.t])},{id:'ret',l:'العودة المتوقعة',t:'date'},{id:'note',l:'الوحدة',ta:1,w:1}]]
 ];
@@ -284,8 +273,8 @@ $('#fg').innerHTML=SEC.map(([h,fs])=>`<h3>${h}</h3><div class="g">${fs.map(f=>`<
 const $f=id=>$('#f_'+id);
 const yrs=d=>{if(!d)return'';const b=new Date(d),n=new Date();let y=n.getFullYear()-b.getFullYear();const m=n.getMonth()-b.getMonth();if(m<0||(m===0&&n.getDate()<b.getDate()))y--;return y>=0?y:''};
 const span=d=>{if(!d)return'';const b=new Date(d),n=new Date();let m=(n.getFullYear()-b.getFullYear())*12+n.getMonth()-b.getMonth();if(n.getDate()<b.getDate())m--;if(m<0)return'';const y=Math.floor(m/12),o=m%12,t=[];if(y)t.push(y+' سنة');if(o)t.push(o+' شهر');return t.length?t.join(' و '):'أقل من شهر'};
-function calc(){$f('age').value=yrs($f('bdate').value);$f('years').value=span($f('pdate').value);$f('kids').value=(+$f('boys').value||0)+(+$f('girls').value||0);$f('mdate').disabled=$f('marital').value!=='متزوج'}
-['bdate','pdate','marital','boys','girls'].forEach(i=>$f(i).addEventListener('input',calc));
+function calc(){$f('kids').value=(+$f('boys').value||0)+(+$f('girls').value||0);$f('mdate').disabled=$f('marital').value!=='متزوج'}
+['marital','boys','girls'].forEach(i=>$f(i).addEventListener('input',calc));
 let photo='';
 function saveFile(name,mime,text){
   if(window.AndroidSave){AndroidSave.save(name,mime,btoa(unescape(encodeURIComponent(text))));return}
@@ -324,7 +313,6 @@ $('#save').onclick=()=>{
   if(editId)Object.assign(data.find(x=>x.id===editId),rec);else data.push({id:Date.now().toString(36),...rec});
   persist();render();$('#dlg').close();
 };
-$('#spbox').onclick=e=>{const b=e.target.closest('[data-sp]');if(!b)return;specF=specF===b.dataset.sp?'':b.dataset.sp;render()};
 $('#stats').onclick=e=>{const b=e.target.closest('[data-f]');if(b){filter=b.dataset.f;render()}};
 $('#q').oninput=render;
 const fd=v=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v||'');return m?m[3]+'/'+m[2]+'/'+m[1]:(v||'')};
@@ -455,24 +443,17 @@ async function personDoc(p){
 function rosterDoc(){
   const D=pdfDoc();let cx=D.page();pdfHeader(D,'كشف أفراد الخلية');
   const total=data.length,sc=STATUS.map(s=>s.t+': '+data.filter(p=>p.st===s.k).length).join('   |   ');
-  D.txt('العدد الكلي: '+total+'   |   أفراد الإشارة: '+data.filter(p=>p.spec==='إشارة').length+'   |   أفراد المعلوماتية: '+data.filter(p=>p.spec==='معلوماتية').length,PW-PM,D.y+20,D.fnt('bold',27),PC.ink);
+  D.txt('العدد الكلي: '+total,PW-PM,D.y+20,D.fnt('bold',27),PC.ink);
   D.txt(sc,PW-PM,D.y+62,D.fnt('normal',25),PC.mute);D.y+=100;
-  const cols=[['#',50],['الفرد',400],['الرقم العسكري',160],['الاختصاص',110],['الحالة',90],['الهاتف',130],['الوحدة',160]];
+  const cols=[['#',50],['الفرد',430],['الرقم العسكري',170],['الحالة',110],['الهاتف',150],['الوحدة',190]];
   const head=()=>{cx=D.cx;cx.fillStyle=PC.brand;cx.fillRect(PM,D.y,PW-2*PM,54);let x=PW-PM;cols.forEach(([t,w])=>{D.txt(t,x-12,D.y+37,D.fnt('bold',25),'#fff');x-=w});D.y+=54};
   head();
-  const order=['إشارة','معلوماتية',...SPECS.filter(s=>s!=='إشارة'&&s!=='معلوماتية'),''];
-  let n=0;
-  order.forEach(g=>{
-    const L=data.filter(p=>(p.spec||'')===g);if(!L.length)return;
-    const bump=(h)=>{if(D.y+h>PH-PM-50){D.page();head()}};
-    bump(52+58);cx=D.cx;cx.fillStyle='#dbe8ef';cx.fillRect(PM,D.y,PW-2*PM,48);
-    D.txt((g||'بدون اختصاص')+'  ('+L.length+')',PW-PM-12,D.y+34,D.fnt('bold',27),PC.brand);D.y+=48;
-    L.forEach(p=>{
-      bump(58);cx=D.cx;n++;
-      const cells=[n,[p.rank,p.name,p.surname].filter(Boolean).join(' '),p.milId||'',p.spec||'',st(p.st).t,p.phone||'',String(p.note||'').split('\n')[0].replace(/^الوحدة:\s*/,'')];
-      let x=PW-PM;cols.forEach(([t,w],i)=>{D.txt(D.fit(cells[i],w-20,D.fnt('normal',25)),x-12,D.y+37,D.fnt('normal',25),PC.ink);x-=w});
-      cx.strokeStyle=PC.line;cx.lineWidth=1.5;cx.beginPath();cx.moveTo(PM,D.y+58);cx.lineTo(PW-PM,D.y+58);cx.stroke();D.y+=58;
-    });
+  data.forEach((p,n)=>{
+    if(D.y+58>PH-PM-50){D.page();head()}
+    cx=D.cx;
+    const cells=[n+1,[p.rank,p.name,p.surname].filter(Boolean).join(' '),p.milId||'',st(p.st).t,p.phone||'',String(p.note||'').split('\n')[0].replace(/^الوحدة:\s*/,'')];
+    let x=PW-PM;cols.forEach(([t,w],i)=>{D.txt(D.fit(cells[i],w-20,D.fnt('normal',25)),x-12,D.y+37,D.fnt('normal',25),PC.ink);x-=w});
+    cx.strokeStyle=PC.line;cx.lineWidth=1.5;cx.beginPath();cx.moveTo(PM,D.y+58);cx.lineTo(PW-PM,D.y+58);cx.stroke();D.y+=58;
   });
   pdfFooters(D);return D;
 }
@@ -529,7 +510,7 @@ $('#rf').onchange=e=>{
   r.readAsText(f);
 };
 $('#today').textContent=new Date().toLocaleDateString('ar',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-let specF='';let trash=[];try{trash=JSON.parse(localStorage.getItem('esc1-trash-v1')||'[]')}catch(e){}
+let trash=[];try{trash=JSON.parse(localStorage.getItem('esc1-trash-v1')||'[]')}catch(e){}
 const saveTrash=()=>{try{localStorage.setItem('esc1-trash-v1',JSON.stringify(trash))}catch(e){}};
 const SEED=[];
 let init=load()||[],seeded=false;
