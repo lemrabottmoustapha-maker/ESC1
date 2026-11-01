@@ -255,7 +255,7 @@ function render(){
   const list=data.filter(p=>(filter==='all'||p.st===filter)&&(!q||[p.name,p.surname,p.rank,p.note,p.milId,p.phone].some(v=>nd(v).includes(q))));
   $('#empty').hidden=list.length>0;
   const rowH=p=>{const s=st(p.st);return `<tr>
-   <td><div class="who">${p.photo?`<img class="av" src="${p.photo}" alt="" data-n="${esc(p.rank+' '+p.name+' '+p.surname)}" title="Cliquer pour agrandir la photo">`:`<span class="av">${esc((p.name||"?").charAt(0))}</span>`}<div><div class="name"><button type="button" class="nm" data-v="${p.id}" title="Cliquer pour afficher la fiche">${esc(p.name)} ${esc(p.surname)}</button></div><div class="small">${esc(p.rank)}${p.milId?", n° "+esc(p.milId):""}</div></div></div></td>
+   <td><div class="who">${p.photo?`<img class="av" src="${p.photo}" alt="" data-n="${esc(p.rank+' '+p.name+' '+p.surname)}" title="Cliquer pour agrandir la photo">`:`<span class="av">${esc((p.name||"?").charAt(0))}</span>`}<div><div class="name"><button type="button" class="nm" data-v="${p.id}" title="Cliquer pour afficher la fiche">${esc(((p.name||'')+' '+(p.surname||'')).trim()||'(Sans nom)')}</button></div><div class="small">${esc(p.rank)}${p.milId?", n° "+esc(p.milId):""}</div></div></div></td>
    <td><select class="quick" data-id="${p.id}" aria-label="Changer le statut" style="--c:${s.c}">${STATUS.map(o=>`<option value="${o.k}" ${o.k===p.st?'selected':''}>${o.t}</option>`).join('')}</select></td>
    <td>${esc(p.note)||'<span class="small">—</span>'}</td>
    </tr>`};
@@ -359,7 +359,7 @@ $('#rcvl').onclick=e=>{
 };
 $('#pfd').onclick=()=>{
   const p=data.find(x=>x.id===viewId);if(!p)return;
-  const nm=[p.rank,p.name,p.surname].filter(Boolean).join(' ');
+  const nm=[p.rank,p.name,p.surname].filter(Boolean).join(' ')||'(Sans nom)';
   if(!confirm('Supprimer « '+nm+' » de la liste ? Il sera déplacé vers « Supprimés » et vous pourrez le récupérer.'))return;
   trash.unshift({...p,deletedAt:new Date().toISOString()});trash=trash.slice(0,100);saveTrash();
   data=data.filter(x=>x.id!==viewId);persist();render();$('#pview').close();viewId=null;
