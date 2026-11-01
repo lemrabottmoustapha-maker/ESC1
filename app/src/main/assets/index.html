@@ -72,6 +72,7 @@ label input,label select,label textarea{padding:8px 10px;border:1px solid var(--
 #lf{background:transparent;border:0;border-radius:8px;width:min(360px,100%);text-shadow:0 0 6px var(--bg),0 0 3px var(--bg)}
 #lf h2,#lf label,#lf .small{color:var(--ink)}
 #lf .btn{background:var(--panel)}
+#lf .btn.pri{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);text-shadow:none;font-weight:700;padding:12px}
 .err{color:var(--s-sick);margin:0;min-height:1.4em;font-size:.9rem}
 .dh{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:flex-start;gap:12px;background:var(--panel);margin:-18px -18px 0;padding:12px 18px;border-bottom:1px solid var(--line)}
 .x{width:38px;height:38px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:1.1rem;line-height:1;cursor:pointer;color:var(--ink)}
@@ -590,8 +591,19 @@ async function go(){
   try{localStorage.setItem(PK,JSON.stringify(rec))}catch(e){}
   unlockUI();
 }
-L('lf').addEventListener('submit',e=>{e.preventDefault();go()});
-L('p_cur').addEventListener('input',()=>{if(mode==='unlock'&&rec&&rec.len&&L('p_cur').value.length===rec.len)go()});
+L('lf').addEventListener('submit',e=>{e.preventDefault();if(mode==='unlock'&&rec&&rec.len&&L('lgo').hidden)return;go()});
+async function chkPin(){
+  const err=t=>{L('le').textContent=t};
+  if(Date.now()<until){err('محاولات كثيرة. انتظر '+Math.ceil((until-Date.now())/1000)+' ثانية.');return false}
+  if(await hp(L('p_cur').value,rec.salt)!==rec.hash){fails++;if(fails>=5){fails=0;until=Date.now()+30000;err('محاولات كثيرة. انتظر 30 ثانية.')}else err('الرمز غير صحيح.');return false}
+  fails=0;L('le').textContent='';return true;
+}
+L('p_cur').addEventListener('input',async()=>{
+  if(mode!=='unlock'||!rec||!rec.len)return;
+  const v=L('p_cur').value;L('lgo').hidden=true;
+  if(v.length===rec.len){if(await chkPin()&&L('p_cur').value===v){L('lgo').hidden=false;L('lgo').focus()}}
+  else L('le').textContent='';
+});
 L('lcancel').onclick=unlockUI;
 L('lk').onclick=()=>{if(rec)show('unlock')};
 L('chg').onclick=()=>{if(rec)show('change')};
