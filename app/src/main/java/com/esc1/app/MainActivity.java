@@ -70,14 +70,14 @@ public class MainActivity extends Activity {
                         runOnUiThread(new Runnable() {
                             public void run() {
                                 new AlertDialog.Builder(MainActivity.this)
-                                    .setTitle("تحديث متوفر")
-                                    .setMessage("يوجد إصدار أحدث من التطبيق. بياناتك لن تُحذف.")
-                                    .setPositiveButton("تحديث", new android.content.DialogInterface.OnClickListener() {
+                                    .setTitle("Mise à jour disponible")
+                                    .setMessage("Une version plus récente est disponible. Vos données ne seront pas supprimées.")
+                                    .setPositiveButton("Mettre à jour", new android.content.DialogInterface.OnClickListener() {
                                         public void onClick(android.content.DialogInterface d, int w) {
                                             startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(BASE + "ESC1.apk")));
                                         }
                                     })
-                                    .setNegativeButton("لاحقاً", null)
+                                    .setNegativeButton("Plus tard", null)
                                     .show();
                             }
                         });
@@ -115,9 +115,9 @@ public class MainActivity extends Activity {
                 OutputStream o = getContentResolver().openOutputStream(u);
                 o.write(d);
                 o.close();
-                toast("تم الحفظ في مجلد التنزيلات: " + name);
+                toast("Fichier enregistré dans Téléchargements : " + name);
             } catch (Exception e) {
-                toast("تعذّر حفظ الملف");
+                toast("Échec de l’enregistrement du fichier");
             }
         }
     }
