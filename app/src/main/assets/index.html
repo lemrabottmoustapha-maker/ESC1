@@ -74,6 +74,7 @@ label input,label select,label textarea{padding:8px 10px;border:1px solid var(--
 #lf .btn{background:var(--panel)}
 #lf .btn.pri{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);text-shadow:none;font-weight:700;padding:12px}
 .inv{border-color:#c0392b!important;box-shadow:0 0 0 2px rgba(192,57,43,.25)}
+#retbar{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;padding:10px 14px;border-radius:8px;background:#fff4d6;color:#4a3300;border:1px solid #e0a948;font-weight:500;line-height:1.5}#retbar span{flex:1}#retbar button{border:0;background:transparent;font-size:1.1rem;cursor:pointer;color:inherit}
 .err{color:var(--s-sick);margin:0;min-height:1.4em;font-size:.9rem}
 .dh{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:flex-start;gap:12px;background:var(--panel);margin:-18px -18px 0;padding:12px 18px;border-bottom:1px solid var(--line)}
 .x{width:38px;height:38px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:1.1rem;line-height:1;cursor:pointer;color:var(--ink)}
@@ -164,6 +165,7 @@ tr.gh b{display:inline-block;margin-inline-start:10px;min-width:1.6em;text-align
     </div>
   </header>
 
+  <div id="retbar" role="status" hidden></div>
   <section class="stats" id="stats" aria-label="Résumé des statuts"></section>
   
   <div class="bar">
@@ -243,7 +245,21 @@ const $=s=>document.querySelector(s);
 let data=[],filter='all',editId=null,memOnly=false;
 
 function load(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r)}catch(e){memOnly=true}return null}
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){memOnly=true}note()}
+/* ===== Retours prévus : alerte du jour + notifications ===== */
+const todayISO=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const pName=p=>[p.rank,p.name,p.surname].filter(Boolean).join(' ')||'(Sans nom)';
+function syncAlarms(){try{if(window.AndroidSave&&AndroidSave.schedule)AndroidSave.schedule(JSON.stringify(data.filter(p=>p.ret&&/^\d{4}-\d{2}-\d{2}$/.test(p.ret)).map(p=>({id:p.id,title:pName(p),date:p.ret}))))}catch(e){}}
+function checkReturns(){
+  const t=todayISO(),due=data.filter(p=>p.ret===t),bar=$('#retbar');
+  let hid='';try{hid=localStorage.getItem('esc1-ret-hidden')||''}catch(e){}
+  if(!due.length||hid===t){bar.hidden=true;return}
+  bar.innerHTML='<span>🔔 Retour prévu aujourd’hui ('+due.length+') : '+due.map(p=>esc(pName(p))).join(', ')+'</span><button type="button" id="retx" aria-label="Fermer" title="Fermer">✕</button>';
+  bar.hidden=false;$('#retx').onclick=()=>{bar.hidden=true;try{localStorage.setItem('esc1-ret-hidden',t)}catch(e){}};
+  try{if(!window.AndroidSave&&'Notification' in window&&Notification.permission==='granted'){let sent=[];try{sent=JSON.parse(localStorage.getItem('esc1-ret-sent')||'[]')}catch(e){}
+    due.forEach(p=>{const k=t+'|'+p.id;if(!sent.includes(k)){new Notification('Retour prévu aujourd’hui',{body:pName(p)});sent.push(k)}});
+    localStorage.setItem('esc1-ret-sent',JSON.stringify(sent.slice(-200)))}}catch(e){}
+}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){memOnly=true}note();syncAlarms();try{checkReturns()}catch(e){}}
 function note(){$('#note').textContent=memOnly?'Enregistrement impossible dans ce navigateur ; les données sont temporaires jusqu’à la fermeture de la page.':'Les données sont enregistrées automatiquement dans ce navigateur uniquement. Utilisez « Sauvegarde » pour en garder une copie.'}
 const st=k=>STATUS.find(s=>s.k===k)||STATUS[0];
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -274,6 +290,7 @@ const SEC=[
 ['Situation familiale',[{id:'marital',l:'État civil',sel:MAR},{id:'mdate',l:'Date de mariage',t:'date'},{id:'boys',l:'Nombre de garçons',t:'number'},{id:'girls',l:'Nombre de filles',t:'number'},{id:'kids',l:'Nombre total d’enfants',ro:1}]],
 ['Cartes et contact',[{id:'cardMil',l:'N° de carte militaire'},{id:'phone',l:'N° de téléphone',t:'tel'},{id:'addr',l:'Adresse',w:1}]],
 ['Parcours professionnel',[{id:'edate',l:'Date d’engagement',t:'date'},]],
+['Mandataire',[{id:'agentRole',l:'Qualité du mandataire'},{id:'agentPhone',l:'N° de téléphone du mandataire',t:'tel'}]],
 ['Sanctions et congés',[{id:'penCount',l:'Nombre de sanctions',t:'number'},{id:'penReason',l:'Motif des sanctions',ta:1,w:1},{id:'penDate',l:'Date de suspension (plusieurs dates possibles)',ta:1,w:1},{id:'leaveCount',l:'Nombre de congés',t:'number'},{id:'leaveDates',l:'Dates des congés',ta:1,w:1}]],
 ['Situation actuelle',[{id:'st',l:'Statut',sel:STATUS.map(s=>[s.k,s.t])},{id:'ret',l:'Date de retour prévue',t:'date'},{id:'note',l:'Groupe',ta:1,w:1}]]
 ];
@@ -320,6 +337,7 @@ $('#xcl').onclick=()=>$('#dlg').close();
 $('#save').onclick=()=>{
   const rec={photo};ALL.forEach(f=>{const e=$f(f.id);rec[f.id]=e.disabled?'':e.value.trim()});
   if(editId)Object.assign(data.find(x=>x.id===editId),rec);else data.push({id:Date.now().toString(36),...rec});
+  if(rec.ret&&!window.AndroidSave&&'Notification' in window&&Notification.permission==='default'){try{Notification.requestPermission()}catch(e){}}
   persist();render();$('#dlg').close();
 };
 $('#stats').onclick=e=>{const b=e.target.closest('[data-f]');if(b){filter=b.dataset.f;render()}};
@@ -589,7 +607,7 @@ function show(m){
   ['p_cur','p_new','p_rep'].forEach(i=>L(i).value='');L('le').textContent='';
   (m==='setup'?L('p_new'):L('p_cur')).focus();
 }
-function unlockUI(){L('lock').hidden=true;document.body.classList.remove('locked')}
+function unlockUI(){L('lock').hidden=true;document.body.classList.remove('locked');try{checkReturns();syncAlarms()}catch(e){}}
 async function go(){
   const err=t=>{L('le').textContent=t};
   const cur=L('p_cur').value,nw=L('p_new').value,rp=L('p_rep').value;

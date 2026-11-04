@@ -29,6 +29,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 2);
+        }
         web = new WebView(this);
         setContentView(web);
         WebSettings s = web.getSettings();
@@ -132,6 +135,12 @@ public class MainActivity extends Activity {
     }
 
     class Bridge {
+        @JavascriptInterface
+        public void schedule(String json) {
+            getSharedPreferences(Notifs.PREFS, MODE_PRIVATE).edit().putString("alarms", json).apply();
+            Notifs.scheduleAll(MainActivity.this);
+        }
+
         @JavascriptInterface
         public void save(String name, String mime, String b64) {
             try {
